@@ -1,13 +1,24 @@
 package core
 
-import "strings"
+import (
+	"github.com/voltavpn/volta-client/internal/authlink"
+)
 
-// ValidateAccessInput делает простую локальную проверку введённого значения.
+// ValidateAccessInput делает безопасную локальную проверку введённого значения.
+// Важно: функция не логирует и не печатает введённые данные.
 func ValidateAccessInput(raw string) (statusMessage string, ok bool) {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
+	normalized := authlink.NormalizeInput(raw)
+	if normalized == "" {
 		return "Пожалуйста, введите ключ доступа или ссылку.", false
 	}
 
-	return "Формат введённых данных принят (локальная проверка).", true
+	_, tokenOK := authlink.ExtractToken(normalized)
+	if !tokenOK {
+		// Сообщение нарочно общее, без подсказок для перебора.
+		return "Неверный ключ или ссылка.", false
+	}
+
+	// На этом этапе формат токена и домен считаем валидными.
+	// Следующие шаги (аутентификация, подключение к VPN) реализуются отдельно.
+	return "Формат ключа принят. Продолжаем…", true
 }

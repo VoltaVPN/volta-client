@@ -2,6 +2,7 @@ package gui
 
 import (
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -36,7 +37,16 @@ func Run() {
 	statusLabel := widget.NewLabel("")
 	statusLabel.Wrapping = fyne.TextWrapWord
 
+	var lastAttempt time.Time
+
 	continueButton := widget.NewButton("Продолжить", func() {
+		now := time.Now()
+		if !lastAttempt.IsZero() && now.Sub(lastAttempt) < 500*time.Millisecond {
+			// Анти-спам: игнорируем слишком частые нажатия.
+			return
+		}
+		lastAttempt = now
+
 		statusMessage, ok := core.ValidateAccessInput(accessInputEntry.Text)
 		statusLabel.SetText(statusMessage)
 
