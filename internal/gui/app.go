@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/voltavpn/volta-client/internal/api"
 	"github.com/voltavpn/volta-client/internal/core"
 )
 
@@ -17,6 +19,22 @@ func Run() {
 	application := app.New()
 	window := application.NewWindow("VoltaVPN")
 
+	apiClient, err := api.NewClientFromEnv()
+	if err != nil {
+		showErrorScreen(window, "Сервис временно недоступен. Повторите попытку позже.")
+		window.ShowAndRun()
+		return
+	}
+
+	showLoginScreen(window, apiClient)
+
+	window.Resize(fyne.NewSize(420, 260))
+	window.CenterOnScreen()
+
+	window.ShowAndRun()
+}
+
+func showLoginScreen(window fyne.Window, apiClient api.APIClient) {
 	titleLabel := widget.NewLabelWithStyle(
 		"VoltaVPN",
 		fyne.TextAlignCenter,
@@ -39,21 +57,34 @@ func Run() {
 
 	var lastAttempt time.Time
 
-	continueButton := widget.NewButton("Продолжить", func() {
+	continueButton := widget.NewButton("Продолжить", nil)
+	continueButton.OnTapped = func() {
 		now := time.Now()
 		if !lastAttempt.IsZero() && now.Sub(lastAttempt) < 500*time.Millisecond {
-			// Анти-спам: игнорируем слишком частые нажатия.
 			return
 		}
 		lastAttempt = now
 
-		statusMessage, ok := core.ValidateAccessInput(accessInputEntry.Text)
+		continueButton.Disable()
+		accessInputEntry.Disable()
+		statusLabel.SetText("Проверяем ключ…")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		result, statusMessage, ok := core.ActivateAccess(ctx, apiClient, accessInputEntry.Text)
 		statusLabel.SetText(statusMessage)
 
-		if ok {
-			// TODO: auth + VPN
+		if !ok {
+			accessInputEntry.Enable()
+			if strings.TrimSpace(accessInputEntry.Text) != "" {
+				continueButton.Enable()
+			}
+			return
 		}
-	})
+
+		showConnectingScreen(window, result)
+	}
 	continueButton.Importance = widget.HighImportance
 	continueButton.Disable()
 
@@ -83,8 +114,64 @@ func Run() {
 	centeredContent := container.NewCenter(formContainer)
 
 	window.SetContent(centeredContent)
-	window.Resize(fyne.NewSize(420, 260))
-	window.CenterOnScreen()
+}
 
-	window.ShowAndRun()
+func showConnectingScreen(window fyne.Window, result core.ActivateResult) {
+	titleLabel := widget.NewLabelWithStyle(
+		"VoltaVPN",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{Bold: true},
+	)
+
+	statusLabel := widget.NewLabelWithStyle(
+		"Подключение…",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{},
+	)
+	statusLabel.Wrapping = fyne.TextWrapWord
+
+	content := container.NewVBox(
+		titleLabel,
+		layout.NewSpacer(),
+		statusLabel,
+		layout.NewSpacer(),
+	)
+
+	padded := container.New(
+		layout.NewVBoxLayout(),
+		container.NewPadded(content),
+	)
+
+	center := container.NewCenter(padded)
+	window.SetContent(center)
+}
+
+func showErrorScreen(window fyne.Window, message string) {
+	titleLabel := widget.NewLabelWithStyle(
+		"VoltaVPN",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{Bold: true},
+	)
+
+	statusLabel := widget.NewLabelWithStyle(
+		message,
+		fyne.TextAlignCenter,
+		fyne.TextStyle{},
+	)
+	statusLabel.Wrapping = fyne.TextWrapWord
+
+	content := container.NewVBox(
+		titleLabel,
+		layout.NewSpacer(),
+		statusLabel,
+		layout.NewSpacer(),
+	)
+
+	padded := container.New(
+		layout.NewVBoxLayout(),
+		container.NewPadded(content),
+	)
+
+	center := container.NewCenter(padded)
+	window.SetContent(center)
 }
