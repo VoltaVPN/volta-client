@@ -1,0 +1,51 @@
+# Binaries
+volta-client
+volta-client.exe
+volta-vpn
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+*.test
+*.out
+bin/
+dist/
+
+# Fyne build artifacts
+fyne-app/
+
+# Logs
+*.log
+logs/
+
+# IDE/editor
+.vscode/
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+Desktop.ini
+*.DS_Store
+
+# Dependency / tooling caches
+.cache/
+
+# Node (in case we add tooling later)
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Secrets (defence-in-depth; primary rule is 'never commit them')
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+*.env
+.env.*
+
