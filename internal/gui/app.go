@@ -83,7 +83,7 @@ func showLoginScreen(window fyne.Window, apiClient api.APIClient) {
 			return
 		}
 
-		showConnectingScreen(window, result)
+		showActivatingScreen(window, result)
 	}
 	continueButton.Importance = widget.HighImportance
 	continueButton.Disable()
@@ -116,7 +116,7 @@ func showLoginScreen(window fyne.Window, apiClient api.APIClient) {
 	window.SetContent(centeredContent)
 }
 
-func showConnectingScreen(window fyne.Window, result core.ActivateResult) {
+func showActivatingScreen(window fyne.Window, result core.ActivateResult) {
 	titleLabel := widget.NewLabelWithStyle(
 		"VoltaVPN",
 		fyne.TextAlignCenter,
@@ -124,16 +124,23 @@ func showConnectingScreen(window fyne.Window, result core.ActivateResult) {
 	)
 
 	statusLabel := widget.NewLabelWithStyle(
-		"Подключение…",
+		"Activating…",
 		fyne.TextAlignCenter,
 		fyne.TextStyle{},
 	)
 	statusLabel.Wrapping = fyne.TextWrapWord
 
+	continueButton := widget.NewButton("Продолжить", func() {
+		showMainScreen(window, result)
+	})
+	continueButton.Importance = widget.HighImportance
+
 	content := container.NewVBox(
 		titleLabel,
 		layout.NewSpacer(),
 		statusLabel,
+		layout.NewSpacer(),
+		continueButton,
 		layout.NewSpacer(),
 	)
 
@@ -174,4 +181,98 @@ func showErrorScreen(window fyne.Window, message string) {
 
 	center := container.NewCenter(padded)
 	window.SetContent(center)
+}
+
+func showMainScreen(window fyne.Window, result core.ActivateResult) {
+	titleLabel := widget.NewLabelWithStyle(
+		"VoltaVPN",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{Bold: true},
+	)
+
+	statusValue := widget.NewLabelWithStyle(
+		"Disconnected",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{Bold: true},
+	)
+
+	statusRow := container.NewHBox(
+		widget.NewLabelWithStyle("Status:", fyne.TextAlignLeading, fyne.TextStyle{}),
+		layout.NewSpacer(),
+		statusValue,
+	)
+
+	connectButton := widget.NewButton("Connect", func() {
+		statusValue.SetText("Coming soon")
+	})
+	connectButton.Importance = widget.HighImportance
+
+	settingsLink := widget.NewHyperlink("Настройки", nil)
+	settingsLink.OnTapped = func() {
+		showSettingsScreen(window, result)
+	}
+
+	activeProfileTitle := widget.NewLabelWithStyle(
+		"Активный профиль",
+		fyne.TextAlignLeading,
+		fyne.TextStyle{Bold: true},
+	)
+
+	// ВАЖНО: не отображаем и не логируем result.SessionToken / result.VPNProfile / result.ProfileURL.
+	// Пока безопасно показываем только нейтральную информацию-заглушку.
+	activeProfileBody := widget.NewLabel("Профиль активирован. Детали будут добавлены позже.")
+	activeProfileBody.Wrapping = fyne.TextWrapWord
+
+	activeProfileBlock := container.NewVBox(
+		activeProfileTitle,
+		activeProfileBody,
+	)
+
+	content := container.NewVBox(
+		titleLabel,
+		layout.NewSpacer(),
+		statusRow,
+		layout.NewSpacer(),
+		connectButton,
+		settingsLink,
+		layout.NewSpacer(),
+		activeProfileBlock,
+	)
+
+	padded := container.New(
+		layout.NewVBoxLayout(),
+		container.NewPadded(content),
+	)
+
+	window.SetContent(container.NewCenter(padded))
+}
+
+func showSettingsScreen(window fyne.Window, result core.ActivateResult) {
+	titleLabel := widget.NewLabelWithStyle(
+		"Настройки",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{Bold: true},
+	)
+
+	backLink := widget.NewHyperlink("← Назад", nil)
+	backLink.OnTapped = func() {
+		showMainScreen(window, result)
+	}
+
+	placeholder := widget.NewLabel("Coming soon")
+
+	content := container.NewVBox(
+		titleLabel,
+		layout.NewSpacer(),
+		placeholder,
+		layout.NewSpacer(),
+		backLink,
+	)
+
+	padded := container.New(
+		layout.NewVBoxLayout(),
+		container.NewPadded(content),
+	)
+
+	window.SetContent(container.NewCenter(padded))
 }
