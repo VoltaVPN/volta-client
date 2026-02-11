@@ -108,10 +108,10 @@ func (s *SegmentedControl) segmentIDAt(pos fyne.Position) string {
 
 func (s *SegmentedControl) CreateRenderer() fyne.WidgetRenderer {
 	s.bg = canvas.NewRectangle(ColorSurface())
-	s.bg.CornerRadius = RadiusPill
+	s.bg.CornerRadius = 0
 
 	s.selection = canvas.NewRectangle(ColorPrimary())
-	s.selection.CornerRadius = RadiusPill
+	s.selection.CornerRadius = 0
 
 	s.labels = make([]*canvas.Text, 0, len(s.options))
 	objects := make([]fyne.CanvasObject, 0, len(s.options)+2)

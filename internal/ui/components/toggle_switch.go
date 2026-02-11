@@ -63,7 +63,7 @@ func (s *ToggleSwitch) MouseOut() {
 
 func (s *ToggleSwitch) CreateRenderer() fyne.WidgetRenderer {
 	s.track = canvas.NewRectangle(ColorBorder())
-	s.track.CornerRadius = Radius16
+	s.track.CornerRadius = 0
 	s.knob = canvas.NewCircle(color.NRGBA{R: 245, G: 247, B: 250, A: 255})
 
 	return &toggleSwitchRenderer{

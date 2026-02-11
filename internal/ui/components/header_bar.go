@@ -9,13 +9,8 @@ import (
 )
 
 func NewHeaderBar(left, center, right fyne.CanvasObject) *fyne.Container {
-	bg := canvas.NewRectangle(ColorSurface())
+	bg := canvas.NewRectangle(ColorBackground())
 	bg.SetMinSize(fyne.NewSize(1, HeaderHeight))
-	bg.CornerRadius = Radius16
-
-	topGlow := canvas.NewRectangle(ColorElevationLow())
-	topGlow.SetMinSize(fyne.NewSize(1, HeaderHeight))
-	topGlow.CornerRadius = Radius16
 
 	line := canvas.NewRectangle(ColorBorder())
 	line.SetMinSize(fyne.NewSize(1, 1))
@@ -35,7 +30,7 @@ func NewHeaderBar(left, center, right fyne.CanvasObject) *fyne.Container {
 		container.NewBorder(NewVSpacer(Spacing16), NewVSpacer(Spacing12), NewHSpacer(Spacing16), NewHSpacer(Spacing16), row),
 	)
 
-	return container.NewStack(topGlow, bg, content)
+	return container.NewStack(bg, content)
 }
 
 func headerSlot(content fyne.CanvasObject) fyne.CanvasObject {

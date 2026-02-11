@@ -9,27 +9,14 @@ import (
 )
 
 func NewCardWithPadding(content fyne.CanvasObject, horizontal, vertical float32) *fyne.Container {
-	shadow := canvas.NewRectangle(ColorElevationMedium())
-	shadow.CornerRadius = Radius20
-
-	bg := canvas.NewRectangle(ColorSurfaceLayered())
-	bg.CornerRadius = Radius20
-
-	border := canvas.NewRectangle(ColorBorder())
-	border.CornerRadius = Radius20
-
 	padded := container.NewBorder(
 		NewVSpacer(vertical), NewVSpacer(vertical),
 		NewHSpacer(horizontal), NewHSpacer(horizontal),
 		content,
 	)
 
-	body := container.NewStack(border, container.NewPadded(bg))
-	return container.NewStack(
-		shadow,
-		container.NewBorder(NewVSpacer(Spacing4), nil, NewHSpacer(Spacing4), nil, body),
-		padded,
-	)
+	// Flat layout: no card shadows/rounded layers.
+	return padded
 }
 
 func NewHSpacer(width float32) fyne.CanvasObject {

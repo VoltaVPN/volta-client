@@ -67,9 +67,9 @@ const (
 	PaddingCard     = components.Spacing12
 	SpacingRow      = components.Spacing8
 	SpacingSection  = components.Spacing16
-	RadiusButton    = components.Radius8
-	RadiusCard      = components.Radius12
-	RadiusSelection = components.Radius8
+	RadiusButton    = 0
+	RadiusCard      = 0
+	RadiusSelection = 0
 	ShadowOffset    = 2
 )
 
