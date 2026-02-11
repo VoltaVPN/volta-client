@@ -2,11 +2,13 @@ package gui
 
 import (
 	"context"
+	"os"
 	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
@@ -17,6 +19,7 @@ import (
 
 func Run() {
 	application := app.New()
+	application.Settings().SetTheme(NewVoltaTheme())
 	window := application.NewWindow("VoltaVPN")
 
 	apiClient, err := api.NewClientFromEnv()
@@ -26,7 +29,15 @@ func Run() {
 		return
 	}
 
-	showLoginScreen(window, apiClient)
+	// Dev shortcut: для теста UI главного экрана без логина/активации.
+	// Важно: используем безопасный stub и не показываем/не логируем секреты.
+	if strings.TrimSpace(os.Getenv("VOLTA_DEV_SKIP_LOGIN")) == "1" {
+		showMainScreen(window, core.ActivateResult{
+			// SessionToken/VPNProfile/ProfileURL намеренно пустые.
+		})
+	} else {
+		showLoginScreen(window, apiClient)
+	}
 
 	window.Resize(fyne.NewSize(420, 260))
 	window.CenterOnScreen()
@@ -83,7 +94,7 @@ func showLoginScreen(window fyne.Window, apiClient api.APIClient) {
 			return
 		}
 
-		showActivatingScreen(window, result)
+		showMainScreen(window, result)
 	}
 	continueButton.Importance = widget.HighImportance
 	continueButton.Disable()
@@ -130,17 +141,10 @@ func showActivatingScreen(window fyne.Window, result core.ActivateResult) {
 	)
 	statusLabel.Wrapping = fyne.TextWrapWord
 
-	continueButton := widget.NewButton("Продолжить", func() {
-		showMainScreen(window, result)
-	})
-	continueButton.Importance = widget.HighImportance
-
 	content := container.NewVBox(
 		titleLabel,
 		layout.NewSpacer(),
 		statusLabel,
-		layout.NewSpacer(),
-		continueButton,
 		layout.NewSpacer(),
 	)
 
@@ -190,43 +194,35 @@ func showMainScreen(window fyne.Window, result core.ActivateResult) {
 		fyne.TextStyle{Bold: true},
 	)
 
-	statusValue := widget.NewLabelWithStyle(
-		"Disconnected",
-		fyne.TextAlignCenter,
-		fyne.TextStyle{Bold: true},
-	)
+	statusBadge := newStatusBadge("Disconnected", StatusDisconnectedColor())
 
 	statusRow := container.NewHBox(
-		widget.NewLabelWithStyle("Status:", fyne.TextAlignLeading, fyne.TextStyle{}),
+		widget.NewLabel("Status"),
 		layout.NewSpacer(),
-		statusValue,
+		statusBadge,
 	)
 
 	connectButton := widget.NewButton("Connect", func() {
-		statusValue.SetText("Coming soon")
+		statusBadge.SetText("Coming soon")
 	})
 	connectButton.Importance = widget.HighImportance
 
-	settingsLink := widget.NewHyperlink("Настройки", nil)
-	settingsLink.OnTapped = func() {
+	settingsButton := widget.NewButton("Settings", func() {
 		showSettingsScreen(window, result)
-	}
+	})
 
-	activeProfileTitle := widget.NewLabelWithStyle(
-		"Активный профиль",
-		fyne.TextAlignLeading,
-		fyne.TextStyle{Bold: true},
+	profileName, profileRegion := safeProfileView(result)
+	profileContent := container.NewVBox(
+		makeLabelRow("Имя", profileName),
+		makeLabelRow("Регион", profileRegion),
 	)
+	activeProfileCard := widget.NewCard("Активный профиль", "", profileContent)
 
-	// ВАЖНО: не отображаем и не логируем result.SessionToken / result.VPNProfile / result.ProfileURL.
-	// Пока безопасно показываем только нейтральную информацию-заглушку.
-	activeProfileBody := widget.NewLabel("Профиль активирован. Детали будут добавлены позже.")
-	activeProfileBody.Wrapping = fyne.TextWrapWord
-
-	activeProfileBlock := container.NewVBox(
-		activeProfileTitle,
-		activeProfileBody,
-	)
+	uploadLabel := canvas.NewText("↑ Upload 0 B/s", AccentColor())
+	uploadLabel.TextSize = 12
+	downloadLabel := canvas.NewText("↓ Download 0 B/s", AccentColor())
+	downloadLabel.TextSize = 12
+	statsRow := container.NewHBox(uploadLabel, layout.NewSpacer(), downloadLabel)
 
 	content := container.NewVBox(
 		titleLabel,
@@ -234,17 +230,22 @@ func showMainScreen(window fyne.Window, result core.ActivateResult) {
 		statusRow,
 		layout.NewSpacer(),
 		connectButton,
-		settingsLink,
+		settingsButton,
 		layout.NewSpacer(),
-		activeProfileBlock,
+		activeProfileCard,
+		statsRow,
 	)
 
-	padded := container.New(
-		layout.NewVBoxLayout(),
-		container.NewPadded(content),
-	)
-
+	padded := container.NewPadded(content)
 	window.SetContent(container.NewCenter(padded))
+}
+
+func makeLabelRow(label, value string) *fyne.Container {
+	return container.NewHBox(
+		widget.NewLabel(label),
+		layout.NewSpacer(),
+		widget.NewLabel(value),
+	)
 }
 
 func showSettingsScreen(window fyne.Window, result core.ActivateResult) {
@@ -275,4 +276,13 @@ func showSettingsScreen(window fyne.Window, result core.ActivateResult) {
 	)
 
 	window.SetContent(container.NewCenter(padded))
+}
+
+func safeProfileView(result core.ActivateResult) (name string, region string) {
+	// Строгие требования безопасности:
+	// - Никогда не используем result.SessionToken / result.VPNProfile / result.ProfileURL в UI.
+	// - Не пытаемся парсить конфиги или URL, чтобы случайно не показать внутренние детали.
+	//
+	// Поэтому сейчас отображаем только безопасные заглушки.
+	return "Active profile", "Unknown"
 }
