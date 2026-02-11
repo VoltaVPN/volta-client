@@ -39,6 +39,13 @@ type HTTPClient struct {
 const (
 	defaultTimeout       = 10 * time.Second
 	maxResponseBodyBytes = 1 << 20 // 1 MiB
+
+	allowedAPIRootHost   = "voltavpn.com"
+	allowedAPIHostExact  = "api.voltavpn.com"
+	allowedAPIHostSuffix = ".voltavpn.com"
+
+	envAllowAnyAPIHost = "VOLTA_API_ALLOW_ANY_HOST"
+	envAllowMockClient = "VOLTA_ALLOW_MOCK_CLIENT"
 )
 
 func NewHTTPClient(baseURL string) (*HTTPClient, error) {
@@ -53,6 +60,9 @@ func NewHTTPClient(baseURL string) (*HTTPClient, error) {
 
 	if parsed.Scheme != "https" {
 		return nil, errors.New("API base URL must use HTTPS")
+	}
+	if !allowAnyAPIHost() && !isAllowedAPIHost(strings.ToLower(parsed.Hostname())) {
+		return nil, errors.New("API base URL host is not in allowlist")
 	}
 
 	parsed.RawQuery = ""
@@ -77,6 +87,32 @@ func NewHTTPClient(baseURL string) (*HTTPClient, error) {
 		baseURL: parsed,
 		client:  httpClient,
 	}, nil
+}
+
+func allowAnyAPIHost() bool {
+	return strings.TrimSpace(os.Getenv(envAllowAnyAPIHost)) == "1"
+}
+
+func isAllowedAPIHost(host string) bool {
+	if !isASCII(host) {
+		return false
+	}
+	if host == allowedAPIRootHost || host == allowedAPIHostExact {
+		return true
+	}
+	return strings.HasSuffix(host, allowedAPIHostSuffix)
+}
+
+func isASCII(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] > 127 {
+			return false
+		}
+	}
+	return true
 }
 
 func sameHostHTTPS(u *url.URL, base *url.URL) bool {
@@ -148,7 +184,10 @@ type MockClient struct{}
 func NewClientFromEnv() (APIClient, error) {
 	baseURL := strings.TrimSpace(os.Getenv("VOLTA_API_BASE_URL"))
 	if baseURL == "" {
-		return &MockClient{}, nil
+		if strings.TrimSpace(os.Getenv(envAllowMockClient)) == "1" {
+			return &MockClient{}, nil
+		}
+		return nil, errors.New("VOLTA_API_BASE_URL is required")
 	}
 
 	return NewHTTPClient(baseURL)

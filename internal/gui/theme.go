@@ -5,39 +5,42 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
+	"github.com/voltavpn/volta-client/internal/ui/components"
 )
 
 // VoltaVPN blue theme — color system (no inline colors in UI).
 var (
 	// Primary blue
-	voltaPrimary       = hexNRGBA(0x3B82F6) // main
-	voltaPrimaryHover  = hexNRGBA(0x2563EB)
+	voltaPrimary       = asNRGBA(components.ColorPrimary())
+	voltaPrimaryHover  = asNRGBA(components.ColorPrimaryHover())
 	voltaPrimaryActive = hexNRGBA(0x1D4ED8)
-	voltaAccent        = hexNRGBA(0x60A5FA) // light/accent
+	voltaAccent        = asNRGBA(components.ColorStatusConnecting())
 
 	// Neutral
-	voltaBgDark    = hexNRGBA(0x0F1419) // almost black
-	voltaCardBg    = hexNRGBA(0x1A1F26) // slightly lighter than bg
-	voltaText      = hexNRGBA(0xF5F5F5) // white
-	voltaTextMuted = hexNRGBA(0x9CA3AF) // secondary gray
-	voltaBorder    = hexNRGBA(0x2D3748) // subtle border
+	voltaBgDark    = asNRGBA(components.ColorBackground())
+	voltaCardBg    = asNRGBA(components.ColorSurface())
+	voltaText      = asNRGBA(components.ColorText())
+	voltaTextMuted = asNRGBA(components.ColorTextMuted())
+	voltaBorder    = asNRGBA(components.ColorBorder())
 
 	// Status badge
-	voltaStatusDisconnected = hexNRGBA(0x6B7280) // gray
+	voltaStatusDisconnected = asNRGBA(components.ColorStatusDisconnected())
 	voltaStatusConnecting   = voltaAccent        // blue
-	voltaStatusConnected    = hexNRGBA(0x22C55E) // green
+	voltaStatusConnected    = asNRGBA(components.ColorStatusConnected())
 
 	// Shadow
 	voltaShadow = hexNRGBA(0x000000)
 )
 
-// Status colors for badge (used by UI only via these; no inline hex).
+// Status colors and shared palette helpers (UI не должен использовать hex напрямую).
 func StatusDisconnectedColor() color.Color { return voltaStatusDisconnected }
 func StatusConnectingColor() color.Color   { return voltaStatusConnecting }
 func StatusConnectedColor() color.Color    { return voltaStatusConnected }
 func AccentColor() color.Color             { return voltaAccent }
 func CardBackgroundColor() color.Color     { return voltaCardBg }
 func CardBorderColor() color.Color         { return voltaBorder }
+func TextColor() color.Color               { return voltaText }
+func TextMutedColor() color.Color          { return voltaTextMuted }
 
 func hexNRGBA(hex uint32) color.Color {
 	return &color.NRGBA{
@@ -48,14 +51,25 @@ func hexNRGBA(hex uint32) color.Color {
 	}
 }
 
+func asNRGBA(c color.Color) color.NRGBA {
+	r, g, b, a := c.RGBA()
+	return color.NRGBA{
+		R: uint8(r >> 8),
+		G: uint8(g >> 8),
+		B: uint8(b >> 8),
+		A: uint8(a >> 8),
+	}
+}
+
 // Layout constants — consistent spacing/padding (no magic numbers in UI).
 const (
-	PaddingStandard = 16
-	PaddingCard     = 12
-	SpacingRow      = 8
-	SpacingSection  = 16
-	RadiusButton    = 8
-	RadiusCard      = 10
+	PaddingStandard = components.Spacing16
+	PaddingCard     = components.Spacing12
+	SpacingRow      = components.Spacing8
+	SpacingSection  = components.Spacing16
+	RadiusButton    = components.Radius8
+	RadiusCard      = components.Radius12
+	RadiusSelection = components.Radius8
 	ShadowOffset    = 2
 )
 
@@ -98,7 +112,9 @@ func (t *VoltaTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) 
 	case theme.ColorNameForegroundOnPrimary:
 		return voltaText
 	case theme.ColorNameSelection:
-		return voltaAccent
+		// Делаем цвет выделения ближе к фону, чтобы круг вокруг чекбоксов
+		// при наведении не был ярким и навязчивым.
+		return voltaBgDark
 	case theme.ColorNameShadow:
 		return voltaShadow
 	case theme.ColorNameSeparator:
@@ -129,7 +145,7 @@ func (t *VoltaTheme) Size(name fyne.ThemeSizeName) float32 {
 	case theme.SizeNameInputRadius:
 		return RadiusCard
 	case theme.SizeNameSelectionRadius:
-		return RadiusCard
+		return RadiusSelection
 	default:
 		return t.base.Size(name)
 	}

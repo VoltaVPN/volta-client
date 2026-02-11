@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	allowedHostSuffix = ".vvpn.io"
-	allowedHostExact  = "vvpn.io"
+	allowedHostSuffix = ".voltavpn.com"
+	allowedHostExact  = "voltavpn.com"
 
 	minTokenLen = 32
 	maxTokenLen = 512
@@ -28,7 +28,10 @@ func ExtractToken(s string) (token string, ok bool) {
 	}
 
 	// Вариант 1: похоже на URL с протоколом.
-	if strings.HasPrefix(normalized, "http://") || strings.HasPrefix(normalized, "https://") {
+	if strings.HasPrefix(normalized, "http://") {
+		return "", false
+	}
+	if strings.HasPrefix(normalized, "https://") {
 		u, err := url.Parse(normalized)
 		if err != nil {
 			return "", false
@@ -86,6 +89,9 @@ func ValidateTokenFormat(token string) bool {
 }
 
 func isAllowedHost(host string) bool {
+	if !isASCII(host) {
+		return false
+	}
 	if host == allowedHostExact {
 		return true
 	}
@@ -93,4 +99,16 @@ func isAllowedHost(host string) bool {
 		return true
 	}
 	return false
+}
+
+func isASCII(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] > 127 {
+			return false
+		}
+	}
+	return true
 }
